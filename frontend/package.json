@@ -1,0 +1,26 @@
+{
+  "name": "perovskite-frontend",
+  "version": "1.0.0",
+  "description": "Perovskite Band Gap Prediction System Frontend",
+  "main": "main.js",
+  "scripts": {
+    "dev": "vue-cli-service serve",
+    "build": "vue-cli-service build"
+  },
+  "dependencies": {
+    "vue": "^3.2.47",
+    "vue-router": "^4.1.6"
+  },
+  "devDependencies": {
+    "@vue/cli-service": "^5.0.8",
+    "@vue/cli-plugin-router": "^5.0.8"
+  },
+  "keywords": [
+    "perovskite",
+    "bandgap",
+    "prediction",
+    "vue"
+  ],
+  "author": "",
+  "license": "MIT"
+}

@@ -1,0 +1,78 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "钙钛矿研究平台",
+        "navigationBarBackgroundColor": "#0a0e17",
+        "navigationBarTextStyle": "white",
+        "backgroundColor": "#0a0e17"
+      }
+    },
+    {
+      "path": "pages/prediction/prediction",
+      "style": {
+        "navigationBarTitleText": "带隙预测",
+        "navigationBarBackgroundColor": "#0a0e17",
+        "navigationBarTextStyle": "white",
+        "backgroundColor": "#0a0e17"
+      }
+    },
+    {
+      "path": "pages/generator/generator",
+      "style": {
+        "navigationBarTitleText": "结构生成",
+        "navigationBarBackgroundColor": "#0a0e17",
+        "navigationBarTextStyle": "white",
+        "backgroundColor": "#0a0e17"
+      }
+    },
+    {
+      "path": "pages/analysis/analysis",
+      "style": {
+        "navigationBarTitleText": "数据分析",
+        "navigationBarBackgroundColor": "#0a0e17",
+        "navigationBarTextStyle": "white",
+        "backgroundColor": "#0a0e17"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "钙钛矿研究平台",
+    "navigationBarBackgroundColor": "#0a0e17",
+    "backgroundColor": "#0a0e17"
+  },
+  "tabBar": {
+    "color": "#6b7280",
+    "selectedColor": "#00d4ff",
+    "borderStyle": "black",
+    "backgroundColor": "#0a0e17",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "static/icons/home.png",
+        "selectedIconPath": "static/icons/home-active.png"
+      },
+      {
+        "pagePath": "pages/prediction/prediction",
+        "text": "预测",
+        "iconPath": "static/icons/predict.png",
+        "selectedIconPath": "static/icons/predict-active.png"
+      },
+      {
+        "pagePath": "pages/generator/generator",
+        "text": "生成",
+        "iconPath": "static/icons/generate.png",
+        "selectedIconPath": "static/icons/generate-active.png"
+      },
+      {
+        "pagePath": "pages/analysis/analysis",
+        "text": "分析",
+        "iconPath": "static/icons/analysis.png",
+        "selectedIconPath": "static/icons/analysis-active.png"
+      }
+    ]
+  }
+}
