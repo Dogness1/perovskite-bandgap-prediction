@@ -9,7 +9,7 @@
         <text class="icon">⚡</text>
       </view>
       <view class="header-text">
-        <text class="title">带隙预测</text>
+        <text class="title">带隙预测 (HSErel_SOC)</text>
         <text class="subtitle">Band Gap Prediction</text>
       </view>
     </view>
@@ -401,7 +401,7 @@ export default {
         if (format === 'csv') {
           // 生成CSV内容
           const csvContent = [
-            ['化学式', '预测带隙(eV)', 'A位元素', 'B位元素', 'Cl比例', 'Br比例', 'I比例', '结构类型', '应用类型', '稳定性', '时间戳'],
+            ['化学式', '预测带隙 HSErel_SOC(eV)', 'A位元素', 'B位元素', 'Cl比例', 'Br比例', 'I比例', '结构类型', '应用类型', '稳定性', '时间戳'],
             [resultData.formula, resultData.predicted_bandgap.toFixed(3), resultData.a_site, resultData.b_site, 
              resultData.cl_ratio, resultData.br_ratio, resultData.i_ratio, 
              resultData.structure_type, resultData.application_type, resultData.stability_level, resultData.timestamp]

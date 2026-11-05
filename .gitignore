@@ -49,3 +49,8 @@ backend/__pycache__/
 backend/*.pyc
 backend/venv/
 backend/.venv/
+
+# Python bytecode (any directory)
+__pycache__/
+*.pyc
+*.pyo

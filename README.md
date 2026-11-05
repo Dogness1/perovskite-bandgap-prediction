@@ -19,8 +19,8 @@
 - **跨域支持**: Flask-CORS 5.0.0
 - **数据处理**: Pandas 2.0.3
 - **数值计算**: NumPy 1.24.4
-- **机器学习**: Scikit-learn 1.3.2
-- **梯度提升**: XGBoost 1.5.0
+- **机器学习**: Scikit-learn 1.3.2（默认 RandomForest 双模型）
+- **梯度提升**: XGBoost 1.5.0（可选配置 C2，未设为默认）
 - **Excel处理**: openpyxl 3.0.0
 - **模型持久化**: joblib 1.1.0
 
@@ -40,9 +40,10 @@
 - **样本示例**: 展示数据集中的典型钙钛矿分子式
 
 ### 2. 带隙预测
-- **输入参数**: A位元素、B位元素、Cl/Br/I比例
-- **预测结果**: 实时预测带隙值
-- **模型支持**: 基于XGBoost的机器学习模型
+- **输入参数**: A位元素、B位元素、Cl/Br/I比例；可选 `pbe_bandgap`（已有 PBE 计算结果时传入）
+- **预测结果**: HSErel_SOC 带隙（PBE 基线 + Δ 修正），同时返回 PBE 分项与 Δ 修正量
+- **模型支持**: 两个 RandomForest 回归器（PBE 基线模型 488 样本、Δ 模型 281 个配对样本）
+- **两种口径**: 传入 `pbe_bandgap` 时用真值作基线（场景 A，误差只来自 Δ 模型）；不传时 PBE 由模型估算（场景 B，Web API 默认）
 
 ### 3. 结构生成
 - **目标导向**: 根据目标带隙值生成新的钙钛矿结构
@@ -57,7 +58,7 @@
 ## 项目结构
 
 ```
-MyClaude/
+perovskite-bandgap-prediction/
 ├── frontend/                 # 前端项目
 │   ├── src/
 │   │   ├── api/           # API接口封装
@@ -72,10 +73,13 @@ MyClaude/
 │   ├── analysis/         # 分析模块
 │   ├── data/            # 数据处理模块
 │   ├── models/          # 模型模块
-│   ├── app.py          # Flask主应用
+│   ├── app.py          # Flask主应用（Δ-learning 双模型）
+│   ├── train.py        # 离线训练与三套验证（新增）
 │   └── requirements.txt # Python依赖
 ├── d3dd00015j2/       # 数据集
 │   └── perovs_data_final.xlsx
+├── experiments/
+│   └── results/        # train.py 输出的指标 JSON
 └── README.md           # 项目说明文档
 ```
 
@@ -207,17 +211,27 @@ python app.py
   "b_site": "Pb",
   "cl_ratio": 0.5,
   "br_ratio": 1.5,
-  "i_ratio": 1.0
+  "i_ratio": 1.0,
+  "pbe_bandgap": 2.10        // 可选；传入则按场景A用真值作基线
 }
 ```
 - **返回**:
 ```json
 {
   "formula": "CsPb(Cl_0.5Br_1.5I_1.0)",
-  "predicted_bandgap": 2.34,
+  "predicted_bandgap": 2.96,
+  "bandgap_basis": "HSErel_SOC (PBE + Δ-learning)",
+  "pbe_source": "provided",
+  "pbe_bandgap": 2.10,
+  "delta_correction": 0.86,
   "input": { ... }
 }
 ```
+`predicted_bandgap` 字段名保持不变，前端无需改动；`pbe_source` 取 `provided` 或 `predicted`。
+
+### 验证指标
+- **接口**: `GET /api/metrics`
+- **描述**: 返回启动时的 5 折随机 / GroupKFold 快速评估，以及 `train.py` 产出的完整 10×5 与端到端结果
 
 ### 结构生成
 - **接口**: `POST /api/generate`
@@ -255,11 +269,38 @@ python app.py
 - **特征工程**: 添加容忍因子、八面体因子等结构特征
 - **数据标准化**: 使用StandardScaler进行特征标准化
 
-### 模型训练
-- **算法**: XGBoost回归
-- **训练集**: 80%数据
-- **测试集**: 20%数据
-- **性能**: R² > 0.85, MAE < 0.3 eV
+### 模型训练与评估口径（v2.0）
+
+**数据**：`perovs_data_final.xlsx` 的 PBE sheet（488 样本）与 HSErel_SOC sheet（282 行），按 `Formula` 一一配对得到 281 个 Δ 标签，Δ = gap_HSE_SOC − gap_PBE。特征共 34 维（A 位 6 + B 位 14 + 卤素比例 3 + 离子半径 3 + 结构描述子 8）。配对时保留 PBE 全量列，否则 8 个结构描述子会被静默丢弃（26 维），实测 MAE 相差 25%。
+
+**模型**：两个 `RandomForestRegressor(n_estimators=200, max_depth=10)`：
+- PBE 基线模型：488 个 PBE 样本，输入组分 → PBE 带隙
+- Δ 模型：281 个配对样本，输入组分 → Δ
+
+**两种口径必须分开报**，这是 v2.0 最重要的修正：
+
+| 场景 | 输入 | 计算式 | 随机 10×5 CV | GroupKFold(5) |
+|---|---|---|---|---|
+| A：已有 PBE 结果（Δ-learning 标准用法） | 组分 + PBE 真值 | PBE_true + Δ_pred | R² 0.9377 / MAE 0.2761 eV | R² 0.9227 / MAE 0.3122 eV |
+| B：仅组分（Web API 默认） | 组分 | PBE_pred + Δ_pred | R² 0.7481 / MAE 0.5453 eV | R² 0.7308 / MAE 0.5819 eV |
+
+场景 B 明显更差，因为 PBE 模型自身的预测误差会叠加进来。此前 README 声称的「XGBoost / 80-20 划分 / R²>0.85, MAE<0.3 eV」与实际代码（RandomForest）及本轮实测均不一致，已删除。对外引用精度时必须注明口径。
+
+**三套验证**：随机 `RepeatedKFold(5×10)`（插值）、`GroupKFold(5, groups=A_B)`（A/B 外推）、独立外部测试集（尚未建立；`--external` 只是从现有配对样本按组切出的代理集，不可作主结论）。
+
+### 训练与校验命令
+
+```bash
+cd backend
+python -m py_compile app.py train.py data/preprocessor.py models/predictor.py
+python -m pyflakes app.py train.py data/preprocessor.py models/predictor.py
+python train.py --check-shapes             # 只校验数据形状，不训练
+python train.py --config C1 --dry-run      # 1 折 / 10 棵树，验证链路
+python train.py --config C1 --full         # 10x5 重复 CV + GroupKFold(5)
+python train.py --config C1 --full --external  # 额外跑代理外部集
+```
+
+结果写入 `experiments/results/latest.json`，并自动被 `GET /api/metrics` 读取。
 
 ## 常见问题
 
@@ -273,7 +314,7 @@ A: 后端服务未启动或API调用失败，启动后端服务即可
 A: 将新的Excel文件放到 `d3dd00015j2/` 目录，并修改 `backend/app.py` 中的数据路径
 
 ### Q: 如何重新训练模型？
-A: 重启后端服务，模型会在启动时自动重新训练
+A: 重启后端服务会自动训练 PBE 与 Δ 两个模型；如需完整的三套验证指标与可归档的结果文件，运行 `python backend/train.py --config C1 --full`。
 
 ## 开发规范
 
@@ -301,5 +342,5 @@ MIT License
 
 ---
 
-**项目版本**: v1.0.0  
-**最后更新**: 2026-04-13
+**项目版本**: v2.0.0（Δ-learning 双模型 + 三套验证）  
+**最后更新**: 2026-11-05

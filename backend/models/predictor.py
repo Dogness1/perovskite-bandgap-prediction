@@ -15,7 +15,7 @@ except ImportError:
     XGBOOST_AVAILABLE = False
 import joblib
 import os
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -81,16 +81,22 @@ class BandGapPredictor:
         y_train: np.ndarray,
         feature_names: list = None,
         tune_hyperparameters: bool = False,
+        sample_weight: np.ndarray = None,
+        cv_repeats: int = 1,
+        compute_cv: bool = True,
         **kwargs
     ) -> Dict:
         """
         训练模型
 
         Args:
-            X_train: 训练特征
-            y_train: 训练目标
-            feature_names: 特征名称
+            X_train: 训练特征 (n_train, d)
+            y_train: 训练目标 (n_train,)
+            feature_names: 特征名称 (d,)
             tune_hyperparameters: 是否进行超参数调优
+            sample_weight: 样本权重 (n_train,)，透传给 model.fit（RF/XGB 均支持）
+            cv_repeats: 内部 CV 重复次数，>1 时改用 RepeatedKFold(5, cv_repeats)
+            compute_cv: 是否计算内部 CV；批量离线训练（train.py 逐折训练）设 False 省时
             **kwargs: 模型参数
 
         Returns:
@@ -102,17 +108,30 @@ class BandGapPredictor:
             self.model = self._tune_hyperparameters(X_train, y_train)
         else:
             self.model = self._create_model(**kwargs)
-            self.model.fit(X_train, y_train)
+            # 样本权重（导师文档3 的 10x10 卤素网格加权）在此透传；
+            # 内部 CV 报告不传权重，避免 cross_val_score 的 fit_params 版本差异。
+            if sample_weight is not None:
+                self.model.fit(X_train, y_train, sample_weight=sample_weight)
+            else:
+                self.model.fit(X_train, y_train)
 
-        # 交叉验证评估
-        cv = KFold(n_splits=5, shuffle=True, random_state=42)
-        self.cv_scores = cross_val_score(self.model, X_train, y_train, cv=cv, scoring='r2')
+        # 交叉验证评估：默认单次 5 折；设为 10 即为 10x5 重复 CV。
+        # compute_cv=False 供 train.py 的逐折训练使用，避免嵌套重复训练。
+        if compute_cv:
+            if cv_repeats > 1:
+                from sklearn.model_selection import RepeatedKFold
+                cv = RepeatedKFold(n_splits=5, n_repeats=cv_repeats, random_state=42)
+            else:
+                cv = KFold(n_splits=5, shuffle=True, random_state=42)
+            self.cv_scores = cross_val_score(self.model, X_train, y_train, cv=cv, scoring='r2')
+        else:
+            self.cv_scores = None
 
         self.is_trained = True
 
         return {
-            'cv_r2_mean': self.cv_scores.mean(),
-            'cv_r2_std': self.cv_scores.std(),
+            'cv_r2_mean': float(self.cv_scores.mean()) if self.cv_scores is not None else None,
+            'cv_r2_std': float(self.cv_scores.std()) if self.cv_scores is not None else None,
             'model_type': self.model_type
         }
 
@@ -183,32 +202,45 @@ class BandGapPredictor:
                 all_preds = np.array([est.predict(X) for est in self.model.estimators_])
                 std = np.std(all_preds, axis=0)
             else:
-                # 使用交叉验证的R²作为不确定性的代理
-                std = predictions * (1 - self.cv_scores.mean()) * 0.1
+                # 使用交叉验证的R²作为不确定性的代理（未计算 CV 时用保守默认值）
+                cv_r2 = float(self.cv_scores.mean()) if self.cv_scores is not None else 0.8
+                std = predictions * (1 - cv_r2) * 0.1
 
             return predictions, std
 
         return self.predict(X), np.zeros(len(X))
 
-    def evaluate(self, X_test: np.ndarray, y_test: np.ndarray) -> Dict:
+    def evaluate(self, X_test: np.ndarray, y_test: np.ndarray,
+                 groups: np.ndarray = None) -> Dict:
         """
         评估模型性能
 
         Args:
-            X_test: 测试特征
-            y_test: 测试目标
+            X_test: 测试特征 (n_test, d)
+            y_test: 测试目标 (n_test,)
+            groups: 分组标签 (n_test,)，如 A_B 组合；给出时额外输出各组 MAE
 
         Returns:
-            dict: 评估指标
+            dict: 评估指标；有 groups 时含 'by_group'
         """
         y_pred = self.predict(X_test)
-
-        return {
+        result = {
             'r2': r2_score(y_test, y_pred),
             'mae': mean_absolute_error(y_test, y_pred),
             'rmse': np.sqrt(mean_squared_error(y_test, y_pred)),
             'mse': mean_squared_error(y_test, y_pred)
         }
+        if groups is not None:
+            groups = np.asarray(groups)
+            result['by_group'] = {}
+            for g in np.unique(groups):
+                mask = groups == g
+                if mask.sum() >= 2:
+                    result['by_group'][str(g)] = {
+                        'n': int(mask.sum()),
+                        'mae': float(mean_absolute_error(y_test[mask], y_pred[mask])),
+                    }
+        return result
 
     def get_feature_importance(self) -> pd.DataFrame:
         """

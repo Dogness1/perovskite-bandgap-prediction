@@ -6,7 +6,7 @@
 import re
 import pandas as pd
 import numpy as np
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple
 
 
 class PerovskitePreprocessor:
@@ -69,6 +69,16 @@ class PerovskitePreprocessor:
                 result['B_site'] = b_site
                 formula = formula[len(b_site):]
                 break
+
+        # 3.5 回退解析：混合 A 位化学式（如 K_0.5Rb_0.125FA_0.375SrBr_3）
+        # 前缀匹配会把 "K" 当 A 位、剩余串以下划线开头导致 B 位匹配失败，
+        # 进而产生 B 位 one-hot 全 0 与 B_radius=NaN 的静默特征污染。
+        # 原数据集有 31 个（11.0%）这样的样本。仅在前缀解析失败时启用。
+        if result['B_site'] is None:
+            b_alt = '|'.join(sorted(self.B_SITES, key=len, reverse=True))
+            match_b = re.search(rf'({b_alt})(?=Cl|Br|I)', formula)
+            if match_b:
+                result['B_site'] = match_b.group(1)
 
         # 3. 提取卤素比例
         halogen_count = 0
@@ -150,12 +160,21 @@ class PerovskitePreprocessor:
         df_copy = df.copy()
         df_copy['A_radius'] = df_copy['A_site'].map(self.ION_RADII)
         df_copy['B_radius'] = df_copy['B_site'].map(self.ION_RADII)
-        # 计算平均卤素半径
-        df_copy['avg_halogen_radius'] = (
+        # 计算平均卤素半径：按真实卤素总数做比例加权（原实现固定除以 3.0，
+        # 当 Cl+Br+I != 3 时会算错；本数据集恒为 3，故指标不变，属正确性修复）
+        halogen_total = (
+            df_copy['Cl_ratio'] + df_copy['Br_ratio'] + df_copy['I_ratio']
+        ).astype(float)
+        weighted_radius = (
             df_copy['Cl_ratio'] * self.ION_RADII['Cl'] +
             df_copy['Br_ratio'] * self.ION_RADII['Br'] +
             df_copy['I_ratio'] * self.ION_RADII['I']
-        ) / 3.0
+        )
+        df_copy['avg_halogen_radius'] = np.divide(
+            weighted_radius, halogen_total,
+            out=np.zeros(len(df_copy), dtype=float),
+            where=halogen_total.to_numpy() > 0,
+        )
         features.append(df_copy[['A_radius', 'B_radius', 'avg_halogen_radius']])
 
         # 5. 结构特征（如果存在）
