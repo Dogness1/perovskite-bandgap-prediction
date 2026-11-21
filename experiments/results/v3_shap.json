@@ -1,0 +1,55 @@
+{
+  "method": "shap.TreeExplainer",
+  "target": "delta (Δ = HSE - PBE)",
+  "top_features": [
+    {
+      "feature": "Deviation of Cubicity at beta",
+      "mean_abs_shap": 0.1117362488898148
+    },
+    {
+      "feature": "Deviation of Cubicity at alpha",
+      "mean_abs_shap": 0.07957502280523118
+    },
+    {
+      "feature": "Octaehdral Factor",
+      "mean_abs_shap": 0.07272376538820978
+    },
+    {
+      "feature": "Deviation of Cubicity at gamma",
+      "mean_abs_shap": 0.062151763124645175
+    },
+    {
+      "feature": "B_radius",
+      "mean_abs_shap": 0.05079108150276442
+    },
+    {
+      "feature": "B_Pb",
+      "mean_abs_shap": 0.04719888726155066
+    },
+    {
+      "feature": "avg_halogen_radius",
+      "mean_abs_shap": 0.042506230123754596
+    },
+    {
+      "feature": "Bartel's Tolerance Factor",
+      "mean_abs_shap": 0.03225766762623325
+    },
+    {
+      "feature": "B_Sn",
+      "mean_abs_shap": 0.02906387288690322
+    },
+    {
+      "feature": "Deviation of Cubicity c axis",
+      "mean_abs_shap": 0.02806973503117072
+    },
+    {
+      "feature": "Cl_ratio",
+      "mean_abs_shap": 0.02656233041062695
+    },
+    {
+      "feature": "I_ratio",
+      "mean_abs_shap": 0.024186018282025712
+    }
+  ],
+  "note": "事后解释，不改变评估器、不产出新精度；结构描述子排名高但推理时依赖填充值"
+}

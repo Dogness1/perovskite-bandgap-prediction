@@ -1,0 +1,13 @@
+{
+  "experiment_id": "v3-layered-B",
+  "config_hash": "layered-base",
+  "metrics": {
+    "r2": 0.9266457402328659,
+    "mae": 0.3090311635065709,
+    "rmse": 0.39865797905941747,
+    "n": 281
+  },
+  "coverage": 1.0,
+  "note": "6 位分层，小样本层全量回代（乐观）；新实验线，不与 C1 全局口径直接对比",
+  "dry": false
+}

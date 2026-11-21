@@ -1,0 +1,10 @@
+{
+  "extends": "base.json",
+  "experiment_id": "C3-electronic-external",
+  "hypothesis": "加入电子描述子 + 严格 group-disjoint 外部集，能否改善外推口径",
+  "features": {"include_structure": true, "include_electronic": true},
+  "evaluation": {
+    "external": {"mode": "group_disjoint", "holdout_groups": ["K_Ca"]}
+  },
+  "note": "新实验线；特征集与C1不同，评估器含独立外部集，不与C1基线直接对比；MA/FA电子参数为组成元素近似启发值"
+}

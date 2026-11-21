@@ -1,0 +1,9 @@
+{
+  "experiment_id": "AL-queue",
+  "n_candidates": 1000,
+  "n_selected": 30,
+  "n_in_target_window": 0,
+  "selection_rule": "不确定性Top30；目标带隙1.3-1.5 eV作加分项（非硬门限）",
+  "caveat": "候选特征用训练集均值行近似；hse_est用PBE均值近似，落入目标窗口候选偏少；仅供DFT计算排序，不构成精度结论",
+  "csv": "C:\\Users\\leiboshi\\WorkBuddy\\2026-11-21-10-35-14\\repo\\experiments\\active_learning_queue.csv"
+}

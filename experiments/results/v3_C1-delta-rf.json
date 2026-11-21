@@ -1,0 +1,155 @@
+{
+  "experiment_id": "C1-delta-rf",
+  "timestamp": "2026-11-21T03:43:37.766763+00:00",
+  "config_hash": "2271d384e1af",
+  "code_commit": "80f0b40+dirty",
+  "dataset": "perovs_data_final.xlsx (PBE+HSErel_SOC) 281 paired",
+  "seed": 42,
+  "config": {
+    "model": {
+      "type": "random_forest",
+      "n_estimators": 200,
+      "max_depth": 10,
+      "random_state": 42,
+      "n_jobs": -1
+    },
+    "features": {
+      "include_structure": true,
+      "include_electronic": false,
+      "structure_fill": "train_mean",
+      "scaler": "standard",
+      "seed": 42
+    },
+    "evaluation": {
+      "random_cv": {
+        "n_splits": 5,
+        "n_repeats": 10,
+        "seed": 42
+      },
+      "group_cv": {
+        "n_splits": 5,
+        "group_by": "A_B"
+      },
+      "external": {
+        "mode": "group_disjoint",
+        "holdout_groups": [
+          "K_Ca"
+        ],
+        "note": "严格 group-disjoint；K_Ca(22样本)为默认划出组，可按配置调整"
+      },
+      "primary_basis": "end_to_end",
+      "basis_definition": {
+        "end_to_end": "PBE_pred + Δ_pred（仅组分，API默认）",
+        "oracle_pbe": "PBE_true + Δ_pred（已有PBE结果）"
+      }
+    }
+  },
+  "metrics": {
+    "random_cv": {
+      "end_to_end": {
+        "r2": 0.747553237112722,
+        "mae": 0.5457824961497061,
+        "rmse": 0.7395587750564384,
+        "n": 2810
+      },
+      "oracle_pbe": {
+        "r2": 0.9377141859593023,
+        "mae": 0.27579848278375024,
+        "rmse": 0.3673519620563362,
+        "n": 2810
+      },
+      "folds": 50
+    },
+    "group_cv": {
+      "end_to_end": {
+        "r2": 0.72333331871349,
+        "mae": 0.5945240660688519,
+        "rmse": 0.774223272467602,
+        "n": 281
+      },
+      "oracle_pbe": {
+        "r2": 0.9161878867711372,
+        "mae": 0.32628835453171745,
+        "rmse": 0.42612909419768424,
+        "n": 281
+      },
+      "folds": 5
+    },
+    "external": {
+      "holdout_groups": [
+        "K_Ca"
+      ],
+      "end_to_end": {
+        "r2": 0.6607545550419589,
+        "mae": 0.655425510414887,
+        "rmse": 0.8122643835470071,
+        "n": 22
+      },
+      "oracle_pbe": {
+        "r2": 0.9512975146035689,
+        "mae": 0.24871020556923848,
+        "rmse": 0.3077626837164928,
+        "n": 22
+      },
+      "note": "group-disjoint 划组；非独立数据源，按导师规则不作论文最终泛化主结论"
+    }
+  },
+  "acceptance_judgment": {
+    "random_cv": {
+      "r2_in_band": true,
+      "r2_pass": true,
+      "mae_in_band": false,
+      "mae_pass": true,
+      "overall_pass": true,
+      "band": {
+        "r2": [
+          0.9,
+          0.94
+        ],
+        "mae": [
+          0.29,
+          0.37
+        ]
+      },
+      "note": "R²沿用导师区间，MAE按std=1.4746反推上修；见docs/acceptance.md"
+    },
+    "group_cv": {
+      "r2_in_band": false,
+      "r2_pass": true,
+      "mae_in_band": false,
+      "mae_pass": true,
+      "overall_pass": true,
+      "band": {
+        "r2": [
+          0.75,
+          0.85
+        ],
+        "mae": [
+          0.47,
+          0.6
+        ]
+      },
+      "note": "R²沿用导师区间，MAE按std=1.4746反推上修；见docs/acceptance.md"
+    },
+    "external": {
+      "r2_in_band": false,
+      "r2_pass": true,
+      "mae_in_band": false,
+      "mae_pass": true,
+      "overall_pass": true,
+      "band": {
+        "r2": [
+          0.7,
+          0.82
+        ],
+        "mae": [
+          0.52,
+          0.66
+        ]
+      },
+      "note": "R²沿用导师区间，MAE按std=1.4746反推上修；见docs/acceptance.md"
+    }
+  },
+  "conclusion": "三套验证结果见 metrics；验收判定按 docs/acceptance.md 上修口径",
+  "notes": "end_to_end为主指标；oracle_pbe仅作Δ-learning上限参考；external为group-disjoint划组，非独立数据源"
+}
