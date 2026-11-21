@@ -1,0 +1,39 @@
+{
+  "experiment_id": "L3-电子描述子+外部集",
+  "line": "electronic_descriptors_group_disjoint",
+  "timestamp": "2026-11-21T03:13:22.301681+00:00",
+  "hypothesis": "加电负性/价电子描述子并按 A_B 组划独立外部集，能给出更可信的泛化数字",
+  "change": "特征 34→39 维（+5 电子描述子）；划 K_Ca(22) 整组作 group-disjoint 外部集；外部集全程不参与训练/调参",
+  "config_hash": "6c764462da90",
+  "code_commit": "c804d15+dirty",
+  "dataset": "perovs_data_final.xlsx PBE+HSErel_SOC, 281 paired",
+  "seed": 42,
+  "evaluator": "group-disjoint 外部集(K_Ca, n=22) + 剩余组 GroupKFold(5)",
+  "metrics": {
+    "external_group": "K_Ca",
+    "external_n": 22,
+    "external": {
+      "r2": 0.9563350828236857,
+      "mae": 0.23674262480288685,
+      "n": 22
+    },
+    "group_cv": {
+      "r2": 0.9229691847241176,
+      "mae": 0.3102501490479545,
+      "n": 259
+    },
+    "n_features": 39,
+    "added_features": [
+      "A_electroneg",
+      "B_electroneg",
+      "chi_B_minus_A",
+      "halogen_electroneg",
+      "valence_A_plus_B"
+    ]
+  },
+  "conclusion": "外部集 R²=0.9563 MAE=0.2367 eV (n=22); 组内 GroupKFold R²=0.9230 MAE=0.3103",
+  "supported": "待定",
+  "caveat": "MA/FA 电负性与价电子为组成元素近似的启发值（已在 ELECTRONEG/VALENCE 注明）；单个 A_B 组作外部集样本偏小；特征集与评估器均改变，属新实验线，不与 C1 直接对比",
+  "new_line": true,
+  "comparable_to_C1_baseline": false
+}

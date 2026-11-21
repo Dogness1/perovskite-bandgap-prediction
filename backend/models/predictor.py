@@ -1,6 +1,6 @@
 """
 带隙预测模型模块
-使用XGBoost进行带隙预测
+支持 XGBoost / RandomForest / GradientBoosting；v2.0 默认口径为 RandomForest。
 """
 
 import numpy as np

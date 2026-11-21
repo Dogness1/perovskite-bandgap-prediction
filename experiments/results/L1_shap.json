@@ -1,0 +1,71 @@
+{
+  "experiment_id": "L1-SHAP",
+  "line": "shap",
+  "timestamp": "2026-11-21T03:13:19.404251+00:00",
+  "hypothesis": "树模型 impurity 重要度有偏，SHAP 能否给出不同的特征排序",
+  "change": "新增 shap.TreeExplainer 对 Δ 模型做事后解释；不改模型、不改评估器、不产出新精度",
+  "config_hash": "ef423aefb5f8",
+  "code_commit": "c804d15+dirty",
+  "dataset": "perovs_data_final.xlsx PBE+HSErel_SOC, 281 paired",
+  "seed": 42,
+  "evaluator": "全量 281 样本拟合后的解释分析（非预测评估）",
+  "metrics": {
+    "top_features": [
+      {
+        "feature": "Deviation of Cubicity at beta",
+        "mean_abs_shap": 0.1117362488898148
+      },
+      {
+        "feature": "Deviation of Cubicity at alpha",
+        "mean_abs_shap": 0.07957502280523118
+      },
+      {
+        "feature": "Octaehdral Factor",
+        "mean_abs_shap": 0.07272376538820978
+      },
+      {
+        "feature": "Deviation of Cubicity at gamma",
+        "mean_abs_shap": 0.062151763124645175
+      },
+      {
+        "feature": "B_radius",
+        "mean_abs_shap": 0.05079108150276442
+      },
+      {
+        "feature": "B_Pb",
+        "mean_abs_shap": 0.04719888726155066
+      },
+      {
+        "feature": "avg_halogen_radius",
+        "mean_abs_shap": 0.042506230123754596
+      },
+      {
+        "feature": "Bartel's Tolerance Factor",
+        "mean_abs_shap": 0.03225766762623325
+      },
+      {
+        "feature": "B_Sn",
+        "mean_abs_shap": 0.02906387288690322
+      },
+      {
+        "feature": "Deviation of Cubicity c axis",
+        "mean_abs_shap": 0.02806973503117072
+      },
+      {
+        "feature": "Cl_ratio",
+        "mean_abs_shap": 0.02656233041062695
+      },
+      {
+        "feature": "I_ratio",
+        "mean_abs_shap": 0.024186018282025712
+      }
+    ],
+    "all_features_scored": 34,
+    "n_samples": 281
+  },
+  "conclusion": "SHAP 排名前 3：['Deviation of Cubicity at beta', 'Deviation of Cubicity at alpha', 'Octaehdral Factor']；作为可解释性增量分析，无精度结论",
+  "supported": "信息性（非假设检验）",
+  "caveat": "SHAP 解释的是 Δ 模型；impurity 重要度与 SHAP 排序差异需人工判读，不自动判定优劣",
+  "new_line": true,
+  "comparable_to_C1_baseline": false
+}

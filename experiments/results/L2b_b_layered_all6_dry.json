@@ -1,0 +1,32 @@
+{
+  "experiment_id": "L2b-6位分层",
+  "line": "b_site_layered_delta_all6",
+  "timestamp": "2026-11-21T03:20:33.186689+00:00",
+  "hypothesis": "按 6 种 B 位各训 Δ 模型（覆盖全量）能否优于全局单一 Δ 模型",
+  "change": "Ca/Ba/Sr/Sn/Ge/Pb 各训 1 个 Δ 模型；大层内部 KFold、小层全量回代；覆盖 281 全量",
+  "config_hash": "c7fe61385dc4",
+  "code_commit": "c804d15+dirty",
+  "dataset": "perovs_data_final.xlsx PBE+HSErel_SOC, 281 paired",
+  "seed": 42,
+  "evaluator": "按 B 位分层的 KFold(2, seed=42)；小层全量回代（乐观）",
+  "metrics": {
+    "r2": 0.9325067477603224,
+    "mae": 0.2851226690391461,
+    "n": 281,
+    "per_group": {
+      "Ba": 57,
+      "Ca": 87,
+      "Ge": 27,
+      "Pb": 25,
+      "Sn": 29,
+      "Sr": 56
+    },
+    "coverage_of_281": 1.0,
+    "note": "样本量小于折数的层用全量拟合回代（乐观估计）"
+  },
+  "conclusion": "6 位分层 R²=0.9325 MAE=0.2851 eV（n=281，覆盖100%）",
+  "supported": "待定",
+  "caveat": "小层（Ge27/Pb25/Sn29 尚可，但按折划分后训练折更小）全量回代会高估；分层改变评估器口径，不与 C1 直接对比；对比对象应同样是分层口径的全局模型",
+  "new_line": true,
+  "comparable_to_C1_baseline": false
+}

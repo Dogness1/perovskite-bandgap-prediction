@@ -1,0 +1,28 @@
+{
+  "experiment_id": "L2-B分层",
+  "line": "b_site_layered_delta",
+  "timestamp": "2026-11-21T03:11:42.079688+00:00",
+  "hypothesis": "Sn 基 Δ 均值 1.14、Pb 基 0.33，分层建模能否降低组内误差",
+  "change": "仅取 Pb/Sn 共 54 样本，按 B 位各训练 1 个 Δ 模型后合并评估；训练子集改变",
+  "config_hash": "1a2051375a8e",
+  "code_commit": "c804d15",
+  "dataset": "perovs_data_final.xlsx PBE+HSErel_SOC, 281 paired",
+  "seed": 42,
+  "evaluator": "KFold(2, seed=42) on 54-sample Pb/Sn subset",
+  "metrics": {
+    "r2": 0.5263573819524701,
+    "mae": 0.5340485185185199,
+    "n": 54,
+    "n_subset": 54,
+    "per_group": {
+      "Pb": 25,
+      "Sn": 29
+    },
+    "coverage_of_281": 0.1922
+  },
+  "conclusion": "Pb/Sn 子集 R²=0.5264 MAE=0.5340 eV（n=54）",
+  "supported": "待定",
+  "caveat": "仅覆盖 54/281(19.2%) 样本，其余 B 位(Ca/Ba/Sr/Ge)未纳入；子集口径与 C1 全量不可直接对比；样本小、置信区间宽",
+  "new_line": true,
+  "comparable_to_C1_baseline": false
+}

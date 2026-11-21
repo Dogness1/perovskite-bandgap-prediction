@@ -123,6 +123,27 @@
         </view>
       </view>
 
+      <!-- Advanced Options: structural descriptors -->
+      <view class="section-card advanced-card">
+        <view class="advanced-header" @click="toggleAdvanced">
+          <text class="card-title">高级选项：结构描述子</text>
+          <text class="advanced-toggle">{{ showAdvanced ? '收起 −' : '展开 +' }}</text>
+        </view>
+        <text class="card-desc">有 DFT 结构描述子时填入真实值；留空则用训练集均值（模型对这些特征敏感）</text>
+        <view class="structure-grid" v-if="showAdvanced">
+          <view class="structure-item" v-for="field in structureFields" :key="field.param">
+            <text class="structure-label">{{ field.label }}</text>
+            <input
+              class="structure-input"
+              type="number"
+              :value="structureInputs[field.param]"
+              :placeholder="String(field.default)"
+              @input="onStructureInput(field.param, $event)"
+            />
+          </view>
+        </view>
+      </view>
+
       <!-- Predict Button -->
       <button class="predict-btn" @click="predict" :disabled="isLoading">
         <text class="btn-text" v-if="!isLoading">预测带隙</text>
@@ -154,6 +175,10 @@
 
         <view class="formula-display">
           <text class="formula-text">{{ generatedFormula }}</text>
+        </view>
+
+        <view class="source-hint" v-if="structureSource === 'default_mean'">
+          <text class="source-hint-text">结构描述子使用训练集均值填充；填入真实 DFT 值可提升可信度</text>
         </view>
 
         <view class="bandgap-result">
@@ -229,7 +254,12 @@ export default {
       showResult: false,
       predictedBandgap: 0,
       generatedFormula: '',
-      predictionHistory: []
+      predictionHistory: [],
+      // 高级选项：结构描述子（有 DFT 计算结果时填入可提升可信度）
+      showAdvanced: false,
+      structureFields: [],       // [{param,label,column,default}]
+      structureInputs: {},       // {param: value}
+      structureSource: 'default_mean'
     }
   },
 
@@ -261,6 +291,7 @@ export default {
 
   onLoad() {
     this.loadElements()
+    this.loadStructureDefaults()
   },
 
   methods: {
@@ -272,6 +303,33 @@ export default {
       } catch (error) {
         console.log('Using default elements')
       }
+    },
+
+    async loadStructureDefaults() {
+      try {
+        const data = await api.getStructureDefaults()
+        if (data.fields) {
+          this.structureFields = data.fields
+          // 用默认值初始化输入框（用户可覆盖）
+          const init = {}
+          data.fields.forEach(f => { init[f.param] = f.default })
+          this.structureInputs = init
+        }
+      } catch (error) {
+        console.log('结构描述子默认值加载失败，将使用后端默认')
+      }
+    },
+
+    toggleAdvanced() {
+      this.showAdvanced = !this.showAdvanced
+    },
+
+    onStructureInput(param, event) {
+      // uni-app / web 兼容：event.detail.value 或 event.target.value
+      const value = (event && event.detail && event.detail.value !== undefined)
+        ? event.detail.value
+        : (event && event.target && event.target.value)
+      this.structureInputs[param] = value
     },
 
     selectA(element) {
@@ -314,16 +372,25 @@ export default {
       this.isLoading = true
 
       try {
-        const response = await api.predictBandgap({
+        const payload = {
           a_site: this.selectedA,
           b_site: this.selectedB,
           cl_ratio: this.clRatio,
           br_ratio: this.brRatio,
           i_ratio: this.iRatio
+        }
+        // 附加结构描述子：仅发送用户改动过的项（与默认值不同的）
+        this.structureFields.forEach(f => {
+          const v = this.structureInputs[f.param]
+          if (v !== undefined && v !== '' && Number(v) !== Number(f.default)) {
+            payload[f.param] = Number(v)
+          }
         })
+        const response = await api.predictBandgap(payload)
 
         this.predictedBandgap = response.predicted_bandgap
         this.generatedFormula = response.formula
+        this.structureSource = response.structure_source || 'default_mean'
         this.showResult = true
 
         // 添加到历史
@@ -890,5 +957,56 @@ export default {
   font-size: 24rpx;
   color: #00d4ff;
   font-weight: 500;
+}
+
+/* Advanced Options */
+.advanced-card {
+  padding-bottom: 24rpx;
+}
+.advanced-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.advanced-toggle {
+  font-size: 22rpx;
+  color: #00d4ff;
+}
+.structure-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+.structure-item {
+  background: #1a1f2e;
+  border-radius: 12rpx;
+  padding: 16rpx;
+}
+.structure-label {
+  display: block;
+  font-size: 22rpx;
+  color: #9ca3af;
+  margin-bottom: 8rpx;
+}
+.structure-input {
+  width: 100%;
+  background: #0f1420;
+  border: 1px solid #374151;
+  border-radius: 8rpx;
+  padding: 8rpx 12rpx;
+  color: #f9fafb;
+  font-size: 24rpx;
+}
+.source-hint {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 12rpx;
+  padding: 12rpx 16rpx;
+  margin-bottom: 20rpx;
+}
+.source-hint-text {
+  font-size: 20rpx;
+  color: #f59e0b;
 }
 </style>

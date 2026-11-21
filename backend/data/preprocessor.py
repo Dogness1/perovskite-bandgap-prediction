@@ -32,8 +32,34 @@ class PerovskitePreprocessor:
         'Cl': 1.81, 'Br': 1.96, 'I': 2.20
     }
 
+    # 结构描述子列名（与 create_feature_matrix 的第 5 组特征一致）
+    STRUCTURE_COLS = [
+        'Deviation of Cubicity b axis', 'Deviation of Cubicity c axis',
+        'Deviation of Cubicity at alpha', 'Deviation of Cubicity at beta',
+        'Deviation of Cubicity at gamma', 'Octaehdral Factor',
+        'Tolerance Factor', "Bartel's Tolerance Factor",
+    ]
+
     def __init__(self):
         self.feature_columns = None
+
+    def fit_structure_defaults(self, df: pd.DataFrame) -> Dict[str, float]:
+        """从数据集学习 8 个结构描述子的默认填充值（列均值）。
+
+        推理时（API / 生成器）用户只提供 A/B 位与卤素比例，无法提供 DFT
+        结构描述子。v2.0 及以前一律填 0.01，与训练分布严重不符
+        （如 Bartel's Tolerance Factor 均值约 4.0、Octahedral Factor 约 0.58）。
+        改用训练集列均值作为中性填充，缩小 train-serve 偏移；这只是缓解，
+        结构描述子本质上需要结构输入，属已知建模局限。
+        """
+        means = {}
+        for col in self.STRUCTURE_COLS:
+            if col in df.columns:
+                means[col] = float(pd.to_numeric(df[col], errors='coerce').mean())
+            else:
+                means[col] = 0.0
+        self.structure_defaults_ = means
+        return means
 
     def parse_formula(self, formula: str) -> Dict:
         """

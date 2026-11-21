@@ -1,0 +1,11 @@
+{
+  "experiment_id": "FIG-diagnostics",
+  "figures": [
+    "C:\\Users\\leiboshi\\WorkBuddy\\2026-11-21-10-35-14\\repo\\experiments\\figures\\01_pred_scatter.png",
+    "C:\\Users\\leiboshi\\WorkBuddy\\2026-11-21-10-35-14\\repo\\experiments\\figures\\02_residual.png",
+    "C:\\Users\\leiboshi\\WorkBuddy\\2026-11-21-10-35-14\\repo\\experiments\\figures\\03_halogen_mae_heatmap.png",
+    "C:\\Users\\leiboshi\\WorkBuddy\\2026-11-21-10-35-14\\repo\\experiments\\figures\\04_uncertainty_error.png"
+  ],
+  "basis": "C1 口径 OOF（random KFold / GroupKFold），200 trees，seed=42",
+  "note": "诊断图是论文素材，不产出新精度结论"
+}

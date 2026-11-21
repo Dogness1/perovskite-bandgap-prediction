@@ -27,6 +27,41 @@ app = Flask(__name__)
 CORS(app)
 
 
+# API 短参数名 -> 结构描述子列名（与 preprocessor.STRUCTURE_COLS 对齐）
+# 用途：让调用方传入真实 DFT 结构描述子，缓解 F6（模型重度依赖这些特征但
+# 旧 API 一律填 0.01/均值）的 train-serve 矛盾。短名便于前端与批量接口使用。
+STRUCTURE_PARAM_MAP = {
+    'cubicity_b': 'Deviation of Cubicity b axis',
+    'cubicity_c': 'Deviation of Cubicity c axis',
+    'cubicity_alpha': 'Deviation of Cubicity at alpha',
+    'cubicity_beta': 'Deviation of Cubicity at beta',
+    'cubicity_gamma': 'Deviation of Cubicity at gamma',
+    'octahedral_factor': 'Octaehdral Factor',
+    'tolerance_factor': 'Tolerance Factor',
+    'bartel_tolerance': "Bartel's Tolerance Factor",
+}
+
+
+def structure_values_from_request(data):
+    """从请求体提取 8 个结构描述子；未提供或非法者用训练均值填充。
+
+    in : data(dict) 请求 JSON（可为单条或 batch 中的单条结构）
+    out: dict{结构列名: float}，键与 create_feature_matrix 期望一致
+    """
+    defaults = model_state.get('structure_defaults', {})
+    out = {}
+    for param, col in STRUCTURE_PARAM_MAP.items():
+        val = data.get(param, None)
+        if val is not None:
+            try:
+                out[col] = float(val)
+                continue
+            except (TypeError, ValueError):
+                pass
+        out[col] = defaults.get(col, 0.0)
+    return out
+
+
 class DeltaCorrectedPredictor:
     """PBE 基线模型 + Δ 修正模型 → HSErel_SOC 带隙。
 
@@ -102,6 +137,10 @@ def initialize_models():
 
     prep = PerovskitePreprocessor()
     model_state['preprocessor'] = prep
+    # 学习 8 个结构描述子的训练均值，作为 API/生成器的中性默认值，
+    # 替代 v2.0 硬编码的 0.01（与训练分布严重不符，见 preprocessor.fit_structure_defaults）
+    structure_defaults = prep.fit_structure_defaults(pbe_df)
+    model_state['structure_defaults'] = structure_defaults
 
     # --- 2. 特征矩阵：两个数据集共用同一套 34 维描述子 -------------------
     pbe_parsed = prep.extract_features(pbe_df)
@@ -183,7 +222,9 @@ def initialize_models():
     # --- 6. 生成器 --------------------------------------------------------
     model_state['generator'] = HalogenStructureGenerator(
         predictor=model_state['predictor'],
-        preprocessor=prep
+        preprocessor=prep,
+        feature_engineer=fe,
+        structure_defaults=structure_defaults,
     )
 
     model_state['is_initialized'] = True
@@ -320,6 +361,9 @@ def predict_bandgap():
         # 可选：调用方若已有 PBE 计算结果，直接作为基线（Δ-learning 标准场景，
         # 精度显著高于由 PBE 模型估算的"纯组分"场景），见 README 口径说明。
         pbe_override = data.get('pbe_bandgap', None)
+        # 是否显式提供了任一结构描述子（用于前端提示预测可信度）
+        structure_source = ('provided' if any(data.get(p) is not None
+                                              for p in STRUCTURE_PARAM_MAP) else 'default_mean')
 
         # 构建特征
         # 创建临时DataFrame用于特征提取
@@ -333,19 +377,9 @@ def predict_bandgap():
             'Band Gap (eV)': 0  # 占位符
         }])
 
-        # 添加结构特征（使用默认值）
-        default_cols = [
-            'Deviation of Cubicity b axis',
-            'Deviation of Cubicity c axis',
-            'Deviation of Cubicity at alpha',
-            'Deviation of Cubicity at beta',
-            'Deviation of Cubicity at gamma',
-            'Octaehdral Factor',
-            'Tolerance Factor',
-            "Bartel's Tolerance Factor"
-        ]
-        for col in default_cols:
-            temp_df[col] = 0.01  # 默认值
+        # 结构描述子：优先用请求体传入的真实值，缺省回退训练集列均值
+        for col, val in structure_values_from_request(data).items():
+            temp_df[col] = val
 
         X, _, _ = model_state['preprocessor'].create_feature_matrix(temp_df, include_target=False)
         X_scaled = model_state['feature_engineer'].transform(X)
@@ -371,6 +405,7 @@ def predict_bandgap():
             'predicted_bandgap': float(hse_pred[0]),
             'bandgap_basis': 'HSErel_SOC (PBE + Δ-learning)',
             'pbe_source': pbe_source,
+            'structure_source': structure_source,
             'pbe_bandgap': float(pbe_base[0]),
             'delta_correction': float(delta_pred[0]),
             'input': {
@@ -525,6 +560,32 @@ def get_available_elements():
     })
 
 
+@app.route('/api/structure-defaults', methods=['GET'])
+def get_structure_defaults():
+    """返回 8 个结构描述子的 API 参数名、中文标签与训练均值。
+
+    前端"高级选项"用此接口预填默认值；用户若有 DFT 计算结果可覆盖。
+    """
+    if not model_state['is_initialized']:
+        initialize_models()
+    labels = {
+        'cubicity_b': '立方度偏差 b 轴', 'cubicity_c': '立方度偏差 c 轴',
+        'cubicity_alpha': '立方度偏差 α', 'cubicity_beta': '立方度偏差 β',
+        'cubicity_gamma': '立方度偏差 γ', 'octahedral_factor': '八面体因子',
+        'tolerance_factor': '容忍因子', 'bartel_tolerance': "Bartel 容忍因子",
+    }
+    defaults = model_state.get('structure_defaults', {})
+    fields = [
+        dict(param=param, label=labels[param], column=col,
+             default=float(defaults.get(col, 0.0)))
+        for param, col in STRUCTURE_PARAM_MAP.items()
+    ]
+    return jsonify({
+        'fields': fields,
+        'note': '有 DFT 结构描述子时填入真实值可显著提升预测可信度；留空则用训练集均值（模型对此敏感，见 L1-SHAP）',
+    })
+
+
 @app.route('/api/data/export', methods=['GET'])
 def export_data():
     """导出数据集
@@ -608,19 +669,9 @@ def batch_predict():
                 'Band Gap (eV)': 0  # 占位符
             }])
 
-            # 添加结构特征（使用默认值）
-            default_cols = [
-                'Deviation of Cubicity b axis',
-                'Deviation of Cubicity c axis',
-                'Deviation of Cubicity at alpha',
-                'Deviation of Cubicity at beta',
-                'Deviation of Cubicity at gamma',
-                'Octaehdral Factor',
-                'Tolerance Factor',
-                "Bartel's Tolerance Factor"
-            ]
-            for col in default_cols:
-                temp_df[col] = 0.01  # 默认值
+            # 结构描述子：优先用该条结构传入的真实值，缺省回退训练集列均值
+            for col, val in structure_values_from_request(struct).items():
+                temp_df[col] = val
 
             X, _, _ = model_state['preprocessor'].create_feature_matrix(temp_df, include_target=False)
             X_scaled = model_state['feature_engineer'].transform(X)
