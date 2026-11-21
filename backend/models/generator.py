@@ -48,16 +48,21 @@ class HalogenStructureGenerator:
         }
     }
 
-    def __init__(self, predictor=None, preprocessor=None):
+    def __init__(self, predictor=None, preprocessor=None,
+                 feature_engineer=None, structure_defaults=None):
         """
         初始化生成器
 
         Args:
-            predictor: 已训练的带隙预测模型
+            predictor: 已训练的带隙预测模型（DeltaCorrectedPredictor）
             preprocessor: 数据预处理器
+            feature_engineer: 已拟合的 FeatureEngineer，用于按训练口径缩放特征
+            structure_defaults: dict，8 个结构描述子的默认填充值（训练集列均值）
         """
         self.predictor = predictor
         self.preprocessor = preprocessor
+        self.feature_engineer = feature_engineer
+        self.structure_defaults = structure_defaults or {}
 
     def _get_target_category(self, target_bandgap: float) -> str:
         """根据目标带隙获取分类"""
@@ -247,10 +252,34 @@ class HalogenStructureGenerator:
         return f"{a_site}{b_site}" + "".join(parts)
 
     def _predict_bandgap(self, structure: Dict) -> float:
-        """使用预测模型预测带隙"""
-        # 构建特征向量
-        # 这里需要与preprocessor的特征顺序一致
-        # 简化处理：返回启发式估计
+        """用已训练的 Δ-learning 预测器估计带隙。
+
+        v2.0 缺陷：本方法虽接收 predictor，却始终返回启发式估计，导致
+        /api/generate 输出的 predicted_bandgap 绕过模型口径（MD-005 still_open#1）。
+        现在按与训练一致的特征链路构造输入并调用 predictor；若缺少任何依赖，
+        才回退到启发式估计（保持本模块可独立运行）。
+        """
+        if self.predictor is not None and self.preprocessor is not None \
+                and self.feature_engineer is not None:
+            import pandas as pd
+            row = {
+                'Formula': structure.get('formula', ''),
+                'A_site': structure['A_site'],
+                'B_site': structure['B_site'],
+                'Cl_ratio': structure['Cl_ratio'],
+                'Br_ratio': structure['Br_ratio'],
+                'I_ratio': structure['I_ratio'],
+                'Band Gap (eV)': 0.0,
+            }
+            for col, val in self.structure_defaults.items():
+                row[col] = val
+            df = pd.DataFrame([row])
+            X, _, _ = self.preprocessor.create_feature_matrix(df, include_target=False)
+            X_scaled = self.feature_engineer.transform(X)
+            if hasattr(self.predictor, 'predict'):
+                pred = self.predictor.predict(X_scaled)
+                return float(np.asarray(pred).reshape(-1)[0])
+        # 依赖不全时回退启发式（独立运行 / 单测场景）
         return self._heuristic_bandgap_estimate(
             structure['Cl_ratio'],
             structure['Br_ratio'],

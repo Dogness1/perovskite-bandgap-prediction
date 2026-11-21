@@ -96,6 +96,11 @@ export const api = {
     return request({ url: '/api/elements' })
   },
 
+  // 获取结构描述子默认值（高级选项）
+  getStructureDefaults() {
+    return request({ url: '/api/structure-defaults' })
+  },
+
   // 导出数据
   exportData(format) {
     return request({

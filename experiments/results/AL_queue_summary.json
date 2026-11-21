@@ -1,0 +1,8 @@
+{
+  "experiment_id": "AL-候选队列",
+  "n_candidates": 2000,
+  "n_selected": 30,
+  "n_in_target_window": 0,
+  "selection_rule": "不确定性 Top30；目标带隙 1.3-1.5 eV 作加分项（非硬门限）",
+  "caveat": "候选特征用训练集均值行近似（结构描述子不可得）；hse_est 用 PBE 均值近似，导致落入目标窗口的候选很少；本队列仅供 DFT 计算排序，不构成精度结论；τ 需 DFT 精算"
+}
