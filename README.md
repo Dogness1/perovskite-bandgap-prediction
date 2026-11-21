@@ -1,346 +1,78 @@
-# 钙钛矿研究平台 - Perovskite Band Gap Prediction System
+# 钙钛矿带隙预测系统 — v3 研究内核
 
-## 项目简介
+基于机器学习的钙钛矿带隙预测：由组分（A/B 位 + Cl/Br/I 比例）预测 HSErel_SOC 带隙，
+采用 Δ-learning（PBE 基线 + Δ 修正）双模型，按导师五步路线组织研究内核。
 
-本项目是一个基于机器学习的钙钛矿带隙预测系统，通过分析钙钛矿材料的化学成分和结构特征，预测其带隙值，为钙钛矿太阳能电池材料研究提供数据支持和决策参考。
+## 版本沿革
 
-## 技术栈
+- v1.0 / v2.0： Flask API + Vue 前端，Δ-learning 双模型（历史资产见网盘「毕设用」）。
+- v2.1：5 项核心更正 + API 结构描述子入参 + 导师方案实验线（分支 `improvement/global-refactor-v2.1`）。
+- **v3（本版）**：按导师五步路线全量重写研究内核，config 驱动，目录约定统一，
+  验收线按 DEC-v3-001 上修。文献严格限于 `docs/references.md` 七条已核验条目。
 
-### 前端技术栈
-- **框架**: Vue 3.2.47
-- **路由**: Vue Router 4.1.6
-- **构建工具**: Vue CLI 5.0.8
-- **HTTP客户端**: Fetch API
-- **样式**: CSS3 + CSS Grid + Flexbox
-- **开发服务器**: Vue CLI Dev Server (端口: 8080)
-
-### 后端技术栈
-- **框架**: Flask 3.0.3
-- **跨域支持**: Flask-CORS 5.0.0
-- **数据处理**: Pandas 2.0.3
-- **数值计算**: NumPy 1.24.4
-- **机器学习**: Scikit-learn 1.3.2（默认 RandomForest 双模型）
-- **梯度提升**: XGBoost 1.5.0（可选配置 C2，未设为默认）
-- **Excel处理**: openpyxl 3.0.0
-- **模型持久化**: joblib 1.1.0
-
-### 开发环境
-- **操作系统**: Windows
-- **Python版本**: Python 3.8+
-- **Node.js版本**: Node.js 14+
-- **包管理器**: npm
-
-## 项目功能
-
-### 1. 数据可视化
-- **统计卡片展示**: 显示样本总数、平均带隙、A位元素数量、B位元素数量
-- **卤素分布图**: 饼图展示Cl、Br、I三种卤素的分布比例
-- **带隙分布直方图**: 展示带隙值在不同区间的分布情况
-- **卤素-带隙关系**: 展示不同卤素对应的平均带隙和范围
-- **样本示例**: 展示数据集中的典型钙钛矿分子式
-
-### 2. 带隙预测
-- **输入参数**: A位元素、B位元素、Cl/Br/I比例；可选 `pbe_bandgap`（已有 PBE 计算结果时传入）
-- **预测结果**: HSErel_SOC 带隙（PBE 基线 + Δ 修正），同时返回 PBE 分项与 Δ 修正量
-- **模型支持**: 两个 RandomForest 回归器（PBE 基线模型 488 样本、Δ 模型 281 个配对样本）
-- **两种口径**: 传入 `pbe_bandgap` 时用真值作基线（场景 A，误差只来自 Δ 模型）；不传时 PBE 由模型估算（场景 B，Web API 默认）
-
-### 3. 结构生成
-- **目标导向**: 根据目标带隙值生成新的钙钛矿结构
-- **智能推荐**: 提供多种满足条件的卤素混合方案
-- **参数控制**: 可设置样本数量和带隙容差
-
-### 4. 数据分析
-- **结构对比**: 将生成结构与数据集进行对比分析
-- **卤素影响**: 分析不同卤素对带隙的影响
-- **特征重要性**: 展示各特征对带隙预测的重要性排序
-
-## 项目结构
-
-```
-perovskite-bandgap-prediction/
-├── frontend/                 # 前端项目
-│   ├── src/
-│   │   ├── api/           # API接口封装
-│   │   ├── pages/         # 页面组件
-│   │   ├── router/        # 路由配置
-│   │   ├── App.vue        # 根组件
-│   │   └── main.js       # 入口文件
-│   ├── index.html         # HTML模板
-│   ├── package.json       # 依赖配置
-│   └── vue.config.js     # Vue配置
-├── backend/              # 后端项目
-│   ├── analysis/         # 分析模块
-│   ├── data/            # 数据处理模块
-│   ├── models/          # 模型模块
-│   ├── app.py          # Flask主应用（Δ-learning 双模型）
-│   ├── train.py        # 离线训练与三套验证（新增）
-│   └── requirements.txt # Python依赖
-├── d3dd00015j2/       # 数据集
-│   └── perovs_data_final.xlsx
-├── experiments/
-│   └── results/        # train.py 输出的指标 JSON
-└── README.md           # 项目说明文档
-```
-
-## 部署过程
-
-### 前端部署
-
-#### 1. 环境准备
-```bash
-# 安装Node.js (建议版本14+)
-# 下载地址: https://nodejs.org/
-
-# 检查Node.js版本
-node --version
-```
-
-#### 2. 安装依赖
-```bash
-cd frontend
-npm install
-```
-
-#### 3. 开发环境运行
-```bash
-npm run dev
-```
-前端服务将运行在 http://localhost:8080/
-
-#### 4. 生产环境构建
-```bash
-npm run build
-```
-构建产物将生成在 `dist/` 目录
-
-### 后端部署
-
-#### 1. 环境准备
-```bash
-# 安装Python (建议版本3.8+)
-# 下载地址: https://www.python.org/
-
-# 检查Python版本
-python --version
-```
-
-#### 2. 安装依赖
-```bash
-cd backend
-pip install -r requirements.txt
-```
-
-#### 3. 启动服务
-```bash
-python app.py
-```
-后端服务将运行在 http://localhost:5000/
-
-### 完整部署流程
-
-#### 开发环境
-```bash
-# 终端1: 启动后端服务
-cd backend
-pip install -r requirements.txt
-python app.py
-
-# 终端2: 启动前端服务
-cd frontend
-npm install
-npm run dev
-```
-
-访问地址: http://localhost:8080/
-
-#### 生产环境
-```bash
-# 1. 构建前端
-cd frontend
-npm run build
-
-# 2. 部署前端
-# 将dist/目录内容部署到Web服务器
-
-# 3. 启动后端
-cd backend
-pip install -r requirements.txt
-python app.py
-```
-
-## API接口文档
-
-### 健康检查
-- **接口**: `GET /api/health`
-- **描述**: 检查后端服务状态
-- **返回**: `{ status: 'healthy', initialized: boolean }`
-
-### 数据统计
-- **接口**: `GET /api/data/stats`
-- **描述**: 获取数据集统计信息
-- **返回**: 
-```json
-{
-  "total_samples": 488,
-  "bandgap_range": { "min": 0.4, "max": 5.4, "mean": 2.81, "std": 1.2 },
-  "elements": { "A_sites": [...], "B_sites": [...] },
-  "sample_formulas": [...]
-}
-```
-
-### 数据分布
-- **接口**: `GET /api/data/distribution`
-- **描述**: 获取数据分布信息
-- **返回**:
-```json
-{
-  "halogen_distribution": { "Cl": 127, "Br": 163, "I": 198 },
-  "bandgap_histogram": { "bins": [...], "counts": [...] },
-  "halogen_bandgap_stats": { "Cl": {...}, "Br": {...}, "I": {...} }
-}
-```
-
-### 带隙预测
-- **接口**: `POST /api/predict`
-- **描述**: 预测钙钛矿带隙
-- **请求体**:
-```json
-{
-  "a_site": "Cs",
-  "b_site": "Pb",
-  "cl_ratio": 0.5,
-  "br_ratio": 1.5,
-  "i_ratio": 1.0,
-  "pbe_bandgap": 2.10        // 可选；传入则按场景A用真值作基线
-}
-```
-- **返回**:
-```json
-{
-  "formula": "CsPb(Cl_0.5Br_1.5I_1.0)",
-  "predicted_bandgap": 2.96,
-  "bandgap_basis": "HSErel_SOC (PBE + Δ-learning)",
-  "pbe_source": "provided",
-  "pbe_bandgap": 2.10,
-  "delta_correction": 0.86,
-  "input": { ... }
-}
-```
-`predicted_bandgap` 字段名保持不变，前端无需改动；`pbe_source` 取 `provided` 或 `predicted`。
-
-### 验证指标
-- **接口**: `GET /api/metrics`
-- **描述**: 返回启动时的 5 折随机 / GroupKFold 快速评估，以及 `train.py` 产出的完整 10×5 与端到端结果
-
-### 结构生成
-- **接口**: `POST /api/generate`
-- **描述**: 生成新的钙钛矿结构
-- **请求体**:
-```json
-{
-  "a_site": "Cs",
-  "b_site": "Pb",
-  "target_bandgap": 1.8,
-  "n_samples": 10,
-  "bandgap_tolerance": 0.3
-}
-```
-- **返回**:
-```json
-{
-  "target_bandgap": 1.8,
-  "a_site": "Cs",
-  "b_site": "Pb",
-  "generated_structures": [...],
-  "total_generated": 10
-}
-```
-
-## 数据集说明
-
-### 数据来源
-- **文件**: `perovs_data_final.xlsx`
-- **样本数量**: 488个钙钛矿样本
-- **特征**: 化学成分、结构参数、带隙值、SLME效率等
-
-### 数据预处理
-- **特征提取**: 从分子式中提取A位、B位元素和卤素比例
-- **特征工程**: 添加容忍因子、八面体因子等结构特征
-- **数据标准化**: 使用StandardScaler进行特征标准化
-
-### 模型训练与评估口径（v2.0）
-
-**数据**：`perovs_data_final.xlsx` 的 PBE sheet（488 样本）与 HSErel_SOC sheet（282 行），按 `Formula` 一一配对得到 281 个 Δ 标签，Δ = gap_HSE_SOC − gap_PBE。特征共 34 维（A 位 6 + B 位 14 + 卤素比例 3 + 离子半径 3 + 结构描述子 8）。配对时保留 PBE 全量列，否则 8 个结构描述子会被静默丢弃（26 维），实测 MAE 相差 25%。
-
-**模型**：两个 `RandomForestRegressor(n_estimators=200, max_depth=10)`：
-- PBE 基线模型：488 个 PBE 样本，输入组分 → PBE 带隙
-- Δ 模型：281 个配对样本，输入组分 → Δ
-
-**两种口径必须分开报**，这是 v2.0 最重要的修正：
-
-| 场景 | 输入 | 计算式 | 随机 10×5 CV | GroupKFold(5) |
-|---|---|---|---|---|
-| A：已有 PBE 结果（Δ-learning 标准用法） | 组分 + PBE 真值 | PBE_true + Δ_pred | R² 0.9377 / MAE 0.2761 eV | R² 0.9227 / MAE 0.3122 eV |
-| B：仅组分（Web API 默认） | 组分 | PBE_pred + Δ_pred | R² 0.7481 / MAE 0.5453 eV | R² 0.7308 / MAE 0.5819 eV |
-
-场景 B 明显更差，因为 PBE 模型自身的预测误差会叠加进来。此前 README 声称的「XGBoost / 80-20 划分 / R²>0.85, MAE<0.3 eV」与实际代码（RandomForest）及本轮实测均不一致，已删除。对外引用精度时必须注明口径。
-
-**三套验证**：随机 `RepeatedKFold(5×10)`（插值）、`GroupKFold(5, groups=A_B)`（A/B 外推）、独立外部测试集（尚未建立；`--external` 只是从现有配对样本按组切出的代理集，不可作主结论）。
-
-### 训练与校验命令
+## 快速开始
 
 ```bash
-cd backend
-python -m py_compile app.py train.py data/preprocessor.py models/predictor.py
-python -m pyflakes app.py train.py data/preprocessor.py models/predictor.py
-python train.py --check-shapes             # 只校验数据形状，不训练
-python train.py --config C1 --dry-run      # 1 折 / 10 棵树，验证链路
-python train.py --config C1 --full         # 10x5 重复 CV + GroupKFold(5)
-python train.py --config C1 --full --external  # 额外跑代理外部集
+cd repo
+pip install -r requirements.txt            # 含 scipy / shap / matplotlib
+python scripts/audit.py                    # 第0步 标签审计
+python scripts/train.py --config c1_delta_rf.json --dry-run   # 链路验证
+python scripts/train.py --config c1_delta_rf.json             # 正式三套验证
+python scripts/train.py --config c3_electronic_external.json  # 新实验线
+python scripts/layered.py                      # B位分层 Δ 模型
+python scripts/interpret.py                # SHAP 解释
+python scripts/active.py                   # 主动学习 DFT 队列
+python scripts/serve.py                    # API :5000
 ```
 
-结果写入 `experiments/results/latest.json`，并自动被 `GET /api/metrics` 读取。
+## 目录结构
 
-## 常见问题
+```
+configs/            实验配置（超参数外置）
+data/raw/           只读原始数据 perovs_data_final.xlsx
+src/data/           加载/清洗/预处理/电子描述子/数据集组装
+src/models/         Δ双模型 / B位分层
+src/evaluation/     三套验证 / 指标与验收判定 / 诊断图
+src/interpretation/ SHAP
+src/active/         主动学习候选队列
+src/api/            Flask 薄层 + 推理封装
+scripts/            train / audit / interpret / active / serve
+experiments/        results / figures / 队列
+docs/               方法 / 文献 / 决策 / 验收口径
+tests/              测试
+```
 
-### Q: 前端无法访问后端API？
-A: 检查后端服务是否启动，确保后端运行在 http://localhost:5000/
+## 模型与口径
 
-### Q: 前端页面显示"加载中..."？
-A: 后端服务未启动或API调用失败，启动后端服务即可
+- 模型：两个 RandomForest（PBE 基线 488 样本 + Δ 模型 281 配对样本），n_estimators=200, max_depth=10, seed=42。
+- 特征：基础 34 维（A/B one-hot + 卤素比例 + 离子半径 + 8 结构描述子）；可选 +5 维电子描述子。
+- 口径：
+  - end_to_end = PBE_pred + Δ_pred（主指标，仅组分，API 默认）；
+  - oracle_pbe = PBE_true + Δ_pred（已有 PBE 结果时）。
+  - 两口径不可混用；对外引用必须注明。
+- 验收线：R² 沿用导师区间，MAE 按 std=1.4746 eV 上修，详见 `docs/acceptance.md`（DEC-v3-001）。
 
-### Q: 如何更换数据集？
-A: 将新的Excel文件放到 `d3dd00015j2/` 目录，并修改 `backend/app.py` 中的数据路径
+## API（主要路由）
 
-### Q: 如何重新训练模型？
-A: 重启后端服务会自动训练 PBE 与 Δ 两个模型；如需完整的三套验证指标与可归档的结果文件，运行 `python backend/train.py --config C1 --full`。
+| 路由 | 说明 |
+|---|---|
+| `GET /api/health` | 健康检查 |
+| `GET /api/structure-defaults` | 8 个结构描述子的参数名/标签/训练均值 |
+| `GET /api/elements` | 可用 A/B 位与卤素 |
+| `POST /api/predict` | 单条预测（可传 8 结构描述子 + 可选 pbe_bandgap） |
+| `POST /api/predict/batch` | 批量预测 |
+| `GET /api/metrics` | 离线三套验证结果 |
 
-## 开发规范
+`predicted_bandgap` 语义为 HSErel_SOC（比 PBE 高约 0.8 eV），字段名保持不变。
+传入真实结构描述子时返回 `structure_source=provided`，否则 `default_mean`。
 
-### 代码风格
-- **前端**: 遵循Vue 3官方风格指南
-- **后端**: 遵循PEP 8代码规范
-- **注释**: 关键函数和复杂逻辑需要添加注释
+## 依赖与限制
 
-### Git提交规范
-- **feat**: 新功能
-- **fix**: 修复bug
-- **docs**: 文档更新
-- **style**: 代码格式调整
-- **refactor**: 代码重构
-- **test**: 测试相关
-- **chore**: 构建/工具链相关
+- 环境：Python 3.8+；依赖见 `requirements.txt`。
+- 已知局限：结构描述子推理时依赖填充；严格三元样本 0；B 位 6 种（Pb/Sn 分层仅覆盖 19.2%）；
+  外部集为 group-disjoint 划组非独立数据源；MA/FA 电子参数为近似值。详见 `docs/methods.md`。
+- 文献：`docs/references.md`（仅 7 条已核验条目，未新增）。
 
-## 许可证
+## Git 提交规范
 
-MIT License
-
-## 联系方式
-
-如有问题或建议，请联系项目维护者。
-
----
-
-**项目版本**: v2.0.0（Δ-learning 双模型 + 三套验证）  
-**最后更新**: 2026-11-05
+feat / fix / docs / style / refactor / test / chore。

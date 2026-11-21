@@ -1,0 +1,57 @@
+{
+  "version": "3.0.0",
+  "description": "钙钛矿带隙预测 v3 研究内核基线配置。超参数全部外置，不硬编码（宪法2.4）。",
+  "project": {
+    "name": "perovskite-bandgap-prediction",
+    "target": "HSErel_SOC",
+    "task": "regression"
+  },
+  "data": {
+    "path": "data/raw/perovs_data_final.xlsx",
+    "sheet_pbe": "PBE",
+    "sheet_hse": "HSErel_SOC",
+    "key": "Formula",
+    "pbe_target": "Band Gap (eV)",
+    "hse_target": "Band Gap (eV)"
+  },
+  "features": {
+    "include_structure": true,
+    "include_electronic": false,
+    "structure_fill": "train_mean",
+    "scaler": "standard",
+    "seed": 42
+  },
+  "model": {
+    "type": "random_forest",
+    "n_estimators": 200,
+    "max_depth": 10,
+    "random_state": 42,
+    "n_jobs": -1
+  },
+  "evaluation": {
+    "random_cv": {"n_splits": 5, "n_repeats": 10, "seed": 42},
+    "group_cv": {"n_splits": 5, "group_by": "A_B"},
+    "external": {
+      "mode": "group_disjoint",
+      "holdout_groups": ["K_Ca"],
+      "note": "严格 group-disjoint；K_Ca(22样本)为默认划出组，可按配置调整"
+    },
+    "primary_basis": "end_to_end",
+    "basis_definition": {
+      "end_to_end": "PBE_pred + Δ_pred（仅组分，API默认）",
+      "oracle_pbe": "PBE_true + Δ_pred（已有PBE结果）"
+    }
+  },
+  "acceptance": {
+    "authority": "docs/acceptance.md",
+    "r2_range": [0.90, 0.94],
+    "mae_range_revised": [0.29, 0.37],
+    "mae_original_mentor": [0.10, 0.14],
+    "basis": "R²为准；MAE按HSE目标std=1.4746eV、正态误差MAE≈0.7979*RMSE反推；原导师MAE区间与该std不自洽，见docs/acceptance.md",
+    "decision_id": "DEC-v3-001"
+  },
+  "output": {
+    "results_dir": "experiments/results",
+    "figures_dir": "experiments/figures"
+  }
+}

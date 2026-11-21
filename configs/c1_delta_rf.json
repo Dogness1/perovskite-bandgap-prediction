@@ -1,0 +1,8 @@
+{
+  "extends": "base.json",
+  "experiment_id": "C1-delta-rf",
+  "hypothesis": "34维完整特征 + Δ-learning 双模型为基线",
+  "features": {"include_structure": true, "include_electronic": false},
+  "model": {"type": "random_forest", "n_estimators": 200, "max_depth": 10},
+  "note": "对应冻结基线；复现目标：随机10x5 端到端 R²≈0.748/MAE≈0.545，oracle R²≈0.938/MAE≈0.276（v2.1实测 sklearn1.9）"
+}

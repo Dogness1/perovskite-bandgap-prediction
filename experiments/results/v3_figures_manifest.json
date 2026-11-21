@@ -1,0 +1,6 @@
+{
+  "scatter": "C:\\Users\\leiboshi\\WorkBuddy\\2026-11-21-10-35-14\\repo\\experiments\\figures\\01_pred_scatter.png",
+  "residual": "C:\\Users\\leiboshi\\WorkBuddy\\2026-11-21-10-35-14\\repo\\experiments\\figures\\02_residual.png",
+  "heatmap": "C:\\Users\\leiboshi\\WorkBuddy\\2026-11-21-10-35-14\\repo\\experiments\\figures\\03_halogen_mae_heatmap.png",
+  "uncertainty": "C:\\Users\\leiboshi\\WorkBuddy\\2026-11-21-10-35-14\\repo\\experiments\\figures\\04_uncertainty_error.png"
+}

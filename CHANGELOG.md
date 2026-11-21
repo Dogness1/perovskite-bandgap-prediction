@@ -1,5 +1,32 @@
 # CHANGELOG
 
+## v3.0.0 — 2026-11-21（全量重写研究内核）
+
+按用户第三轮确认：完全按导师指导重构，R²为准/MAE上修，文献限优化方案附录B七条，网盘只替换重写文件。
+
+### 结构性变更
+- 新增 `src/`（data/models/evaluation/interpretation/active/api）+ `scripts/`（train/audit/interpret/active/serve）
+  + `configs/`（超参数外置，extends 深合并）+ `docs/`（方法/文献/决策/验收）+ `data/raw/`（只读数据）。
+- 历史 v2.x `backend/`、`frontend/` 保留供对照；v3 API 薄层复用 src 内核。
+
+### 验收线（DEC-v3-001）
+- 导师原 MAE 0.10–0.14 与 R² 0.90–0.94 在 std=1.4746 上不自洽（三处文档记录、导师未答）。
+- 决策：R² 沿用，MAE 按 MAE≈0.7979·std·√(1−R²) 上修（随机 0.29–0.37 等），见 `docs/acceptance.md`。
+
+### 五步路线落地
+- 第0步：`src/data/cleaner.py` + `scripts/audit.py`（3σ 候选 0、τ 异常 4、is_converged 占位）。
+- 第1步：`src/data/dataset.py::grid_weights`（C2 负面结果如实保留）。
+- 第2步：`src/evaluation/`（三套验证 + 4 类诊断图 + 上修验收判定）。
+- 第3步：`src/active/candidate.py`（LatinHypercube + 不确定性筛选，目标窗口候选 0 如实记录）。
+- 第4步：`configs/base.json::evaluation.external`（group-disjoint 划组，非独立数据源）。
+
+### 文献
+- `docs/references.md` 仅列优化方案附录 B 七条已核验条目（DOI/PMID 原样），未新增任何文献。
+
+### 验证
+- 数据层 281/34 维（电子版 39 维）、训练入口 dry-run 字段完整、API 五路由 200、
+  SHAP/主动学习跑通。正式三套验证结果见 `experiments/results/v3_*.json`。
+
 ## v2.1.1 — 2026-11-21（未提交，工作分支 improvement/global-refactor-v2.1）
 
 按用户第二轮确认：API 输入改造（F6 处置）、L2b 六位分层、前端 dist 重建、按导师方案补齐工程。
